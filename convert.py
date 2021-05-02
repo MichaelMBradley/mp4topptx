@@ -5,10 +5,6 @@ from pptx import Presentation
 from pptx.util import Inches
 import sys
 
-"""# For testing only [DELETE]
-if __name__ == "__main__":
-    sys.argv = [f"{os.path.dirname(__file__)}\\{input('Local mp4 file name (without extension): ')}.mp4"]"""
-
 # Ensuring valid argument
 if len(sys.argv) != 2:
     sys.exit("Invalid argument (video path should be the only argument)")
