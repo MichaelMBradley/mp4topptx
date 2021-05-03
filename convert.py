@@ -18,11 +18,11 @@ if videofile[-4:] != ".mp4":
 if not os.path.isfile(videofile):
     sys.exit("File does not exist")
 
-global frames
 frames = os.path.dirname(videofile) + "\\frames\\"
 
 # Function to set up path
 def delete_frames(createdir):
+    global frames
     try:
         if os.path.exists(frames):
             for filename in glob.glob(frames + "*"):
