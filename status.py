@@ -57,6 +57,13 @@ class timer:
             self.times[self.recording] += self.lasttime - prev
             self.recording = index
 
+    def start(self, startindex=1):
+        self.swapto(startindex)
+
+    def stop(self):
+        self.swapto(self.recording)
+        self.inc[self.recording] -= 1
+
     def results(self):
         for i in range(len(self.names)):
             print(f"{self.names[i]}: {formattime(self.times[i])} ({formattime(self.times[i]/max(self.inc[i], 1))}/each)")
