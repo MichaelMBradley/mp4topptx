@@ -4,6 +4,7 @@ import os
 from pptx import Presentation
 from pptx.util import Inches
 import sys
+import status
 
 # Ensuring valid argument
 if len(sys.argv) != 2:
@@ -57,11 +58,18 @@ prs.slide_height = Inches(9)
 totalframes = len(glob.glob(frames + "*"))
 freq = framerate / 30
 framenumber = 0
+statusbar = status.statusbar(int(totalframes / freq), "Creating pptx")
+timer = status.timer(["Slides", "Saving"])
 while int(framenumber) <= totalframes - 1:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide.shapes.add_picture(f"{frames}{int(framenumber)}.jpg", 0, 0, width=Inches(16), height=Inches(9))
     framenumber += freq
+    statusbar.incrementandprint()
+    timer.swapto(0)
 
 # Clean-up
+timer.swapto(1)
 prs.save(f"{videofile[:-3]}pptx")
 delete_frames(False)
+timer.swapto(1)
+timer.results()
