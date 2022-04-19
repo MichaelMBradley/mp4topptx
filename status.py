@@ -1,4 +1,9 @@
-import time
+"""
+A couple of quick classes I wrote to time my projects.
+"""
+
+
+from time import time
 
 
 def formattime(t, decimals=4):
@@ -23,7 +28,7 @@ class statusbar:
 
     def incrementstatus(self):
         self.curr += 1
-        self.rate = (time.time() - self.starttime) / self.curr
+        self.rate = (time() - self.starttime) / self.curr
 
     def incrementandprint(self):
         self.incrementstatus()
@@ -34,7 +39,7 @@ class statusbar:
         self.curr = 0
         self.length = length
         self.msg = msg
-        self.starttime = time.time()
+        self.starttime = time()
         self.printstatus()
 
 
@@ -48,11 +53,11 @@ class timer:
 
     def swapto(self, index):
         if self.lasttime == -1:
-            self.lasttime = time.time()
+            self.lasttime = time()
             self.recording = index
         else:
             prev = self.lasttime
-            self.lasttime = time.time()
+            self.lasttime = time()
             self.inc[self.recording] += 1
             self.times[self.recording] += self.lasttime - prev
             self.recording = index

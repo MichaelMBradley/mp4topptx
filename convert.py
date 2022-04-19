@@ -1,76 +1,100 @@
-import cv2
-import glob
-import os
+from cv2 import VideoCapture, CAP_PROP_FPS, imwrite
+from os import remove, rmdir, mkdir
+from os.path import exists, dirname, isfile
+from glob import glob
 from pptx import Presentation
 from pptx.util import Inches
-import sys
-import status
+from sys import argv, exit
+from status import statusbar, timer
 
 # Ensuring valid argument
-if len(sys.argv) != 2:
-    sys.exit("Invalid argument (video path should be the only argument)")
+# Returns (path to video, path to frame directory)
+def validate_input(arguments: list[str]) -> tuple[str, str]:
+    if len(arguments) != 2:
+        exit("Invalid argument (video path should be the only argument)")
 
-videofile = sys.argv[1]
+    videofile = arguments[1]
 
-if videofile[-4:] != ".mp4":
-    sys.exit("Invalid format (format should be .mp4)")
+    if videofile[-4:] != ".mp4":
+        exit("Invalid format (format should be .mp4)")
 
-if not os.path.isfile(videofile):
-    sys.exit("File does not exist")
+    if not isfile(videofile):
+        exit("File does not exist")
 
-frames = os.path.dirname(videofile) + "\\frames\\"
+    frames = dirname(videofile) + "\\frames\\"
+
+    return (videofile, frames)
+
 
 # Function to set up path
-def delete_frames(createdir):
-    global frames
+def delete_frames(createdir: bool, frames: str) -> None:
     try:
-        if os.path.exists(frames):
-            for filename in glob.glob(frames + "*"):
-                os.remove(filename)  # Deletes each file in \frames\
-            os.rmdir(frames)
+        if exists(frames):
+            # TODO: For whatever reason this isn't working
+            for filename in glob(frames + "*"):
+                print(filename, exists(filename))
+                remove(filename)  # Deletes each file in \frames\
+            rmdir(frames)
         if createdir:
-            os.mkdir(frames)
+            mkdir(frames)
     except OSError as error:
-        sys.exit(error)
+        exit(error)
 
 
-delete_frames(True)
+# Returns (number of frames, frame rate)
+def read_video(videofile: str, frames: str) -> tuple[int, int]:
+    vid = VideoCapture(videofile)
+    framerate = vid.get(CAP_PROP_FPS)
 
-# Initializing
-vid = cv2.VideoCapture(videofile)
-framerate = vid.get(cv2.CAP_PROP_FPS)
+    # Reading video
+    framenumber = 0
+    while True:
+        framesleft, frame = vid.read()
+        if not framesleft:
+            break
+        else:
+            # Writes each frame to file
+            imwrite(f"{frames}{framenumber}.jpg", frame)
+            framenumber += 1
+    vid.release()
 
-# Reading video
-framenumber = 0
-while True:
-    framesleft, frame = vid.read()
-    if not framesleft:
-        break
-    else:
-        cv2.imwrite(f"{frames}{framenumber}.jpg", frame)
-        framenumber += 1
-vid.release()
+    return (framenumber, framerate)
 
-# Creating pptx
-prs = Presentation()
-prs.slide_width = Inches(16)
-prs.slide_height = Inches(9)
-totalframes = len(glob.glob(frames + "*"))
-freq = framerate / 30
-framenumber = 0
-statusbar = status.statusbar(int(totalframes / freq), "Creating pptx")
-timer = status.timer(["Slides", "Saving"])
-timer.start()
-while int(framenumber) <= totalframes - 1:
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    slide.shapes.add_picture(f"{frames}{int(framenumber)}.jpg", 0, 0, width=Inches(16), height=Inches(9))
-    framenumber += freq
-    statusbar.incrementandprint()
-    timer.swapto(0)
 
-# Clean-up
-timer.swapto(1)
-prs.save(f"{videofile[:-3]}pptx")
-delete_frames(False)
-timer.stop()
-timer.results()
+def convert(arguments: list[str]) -> None:
+    # Initializing
+    (videofile, frames) = validate_input(arguments)
+    delete_frames(True, frames)
+
+    # Creating pptx
+    prs = Presentation()
+    prs.slide_width = Inches(16)
+    prs.slide_height = Inches(9)
+
+    (totalframes, framerate) = read_video(videofile, frames)
+    freq = framerate / 30
+    framenumber = 0
+
+    # Initialize time-keeping
+    status = statusbar(int(totalframes / freq), "Creating pptx")
+    timing = timer(["Slides", "Saving"])
+    timing.start()
+
+    # Create each slide
+    while int(framenumber) < totalframes:
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        slide.shapes.add_picture(f"{frames}{int(framenumber)}.jpg", 0, 0, width=Inches(16), height=Inches(9))
+        framenumber += freq
+        status.incrementandprint()
+        timing.swapto(0)
+
+    # Clean-up
+    prs.save(f"{videofile[:-3]}pptx")
+    timing.swapto(1)
+    delete_frames(False, frames)
+    timing.stop()
+    timing.results()
+
+
+if __name__ == "__main__":
+    convert(argv)
